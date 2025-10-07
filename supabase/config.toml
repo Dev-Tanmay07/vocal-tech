@@ -1,1 +1,7 @@
 project_id = "fptgawdgmahytizevzwl"
+
+[functions.create-paypal-order]
+verify_jwt = true
+
+[functions.capture-paypal-payment]
+verify_jwt = false
