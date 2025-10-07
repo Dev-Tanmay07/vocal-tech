@@ -78,9 +78,18 @@ serve(async (req) => {
     const amount = captureData.purchase_units[0].payments.captures[0].amount.value;
     const currency = captureData.purchase_units[0].payments.captures[0].amount.currency_code;
 
-    // Get user from payer info (you may need to store this mapping during order creation)
-    // For now, we'll use a custom_id if you set it during order creation
+    // Get user ID from custom_id set during order creation
     const userId = captureData.purchase_units[0].custom_id;
+
+    if (!userId) {
+      console.error('No user ID found in PayPal order');
+      return new Response(
+        JSON.stringify({ error: 'User ID not found in order' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Processing payment for user:', userId);
 
     if (userId) {
       // Record payment in payment_history

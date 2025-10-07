@@ -11,6 +11,15 @@ interface OrderRequest {
   amount: string;
 }
 
+const VALID_PLANS: Record<string, number> = {
+  free: 0,
+  starter: 9.99,
+  creator: 19.99,
+  pro: 29.99,
+  scale: 49.99,
+  business: 99.99,
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -38,6 +47,26 @@ serve(async (req) => {
     }
 
     const { plan_type, amount }: OrderRequest = await req.json();
+
+    // Validate plan_type
+    if (!VALID_PLANS.hasOwnProperty(plan_type)) {
+      console.error('Invalid plan type:', plan_type);
+      return new Response(
+        JSON.stringify({ error: 'Invalid plan type' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate amount matches plan
+    const expectedAmount = VALID_PLANS[plan_type];
+    if (parseFloat(amount) !== expectedAmount) {
+      console.error('Amount mismatch for plan:', plan_type, 'Expected:', expectedAmount, 'Got:', amount);
+      return new Response(
+        JSON.stringify({ error: 'Invalid amount for plan' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     console.log('Creating PayPal order for user:', user.id, 'Plan:', plan_type, 'Amount:', amount);
 
     const PAYPAL_CLIENT_ID = Deno.env.get('PAYPAL_CLIENT_ID');
@@ -87,6 +116,7 @@ serve(async (req) => {
             value: amount,
           },
           description: `${plan_type} plan subscription`,
+          custom_id: user.id, // Associate order with user for capture function
         }],
         application_context: {
           return_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/capture-paypal-payment`,
